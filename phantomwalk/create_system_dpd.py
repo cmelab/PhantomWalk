@@ -4,7 +4,7 @@ import gsd, gsd.hoomd
 import hoomd 
 import time
 
-from dpd_utils import initialize_snapshot_rand_walk,check_bond_length_equilibration,check_inter_particle_distance,add_hoomd_writers,check_pair_energy
+from dpd_utils import initialize_snapshot_rand_walk,test_initialize_snapshot_rand_walk,check_bond_length_equilibration,check_inter_particle_distance,add_hoomd_writers,check_pair_energy
 
 
 def create_polymer_system_dpd(num_pol,num_mon,density,k=20000,bond_l=1.0,r_cut=1.15,kT=1.0,A=1000,gamma=800,dt=0.001,particle_spacing=1.1,sim_seed=123,np_seed=1234,write=True,energy=True):
@@ -54,11 +54,11 @@ def create_polymer_system_dpd(num_pol,num_mon,density,k=20000,bond_l=1.0,r_cut=1
     print(f"\nRunning with A={A}, gamma={gamma}, k={k}, "
           f"num_pol={num_pol}, num_mon={num_mon}")
     start_time = time.perf_counter()
-    frame = initialize_snapshot_rand_walk(num_mon=num_mon,num_pol=num_pol,bond_length=bond_l,density=density,seed=np_seed)
+    frame = test_initialize_snapshot_rand_walk(num_mon=num_mon,num_pol=num_pol,bond_length=bond_l,density=density,seed=np_seed)
     build_stop = time.perf_counter()
     print("Total build time: ", build_stop-start_time)
     harmonic = hoomd.md.bond.Harmonic()
-    harmonic.params["b"] = dict(r0=bond_l, k=k)
+    harmonic.params["A-A"] = dict(r0=bond_l, k=k)
     integrator = hoomd.md.Integrator(dt=dt)
     integrator.forces.append(harmonic)
     simulation = hoomd.Simulation(device=hoomd.device.auto_select(), seed=np.random.randint(sim_seed))
