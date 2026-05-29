@@ -93,7 +93,13 @@ def check_inter_particle_distance(snap,minimum_distance=0.95):
     else:
         return False
 
-def add_hoomd_writers(sim):
+def add_hoomd_writers(
+    sim,
+    gsd_file_name="trajectory.gsd",
+    gsd_write_freq=10,
+    log_file_name="log.txt",
+    log_write_freq=10
+):
     """Add GSD trajectory and log writers to a HOOMD simulation.
 
     This function creates:
@@ -106,6 +112,14 @@ def add_hoomd_writers(sim):
     sim : hoomd.Simulation
         HOOMD simulation object to which writers and
         computes will be attached.
+    gsd_file_name : str, default 'trajectory.gsd'
+        the file that the gsd trajectory data will be saved to
+    gsd_write_freq : int, default 10
+        Period to write simulation data to the gsd file.
+    log_file_name : str, default 'log.txt'
+        the file that the .txt log file will be saved to
+    log_write_freq : int, default 10
+        Period to write simulation data to the log file.
 
     Returns
     -------
@@ -138,8 +152,8 @@ def add_hoomd_writers(sim):
         gsd_logger.add(f, quantities=["energy"])
 
     gsd_writer = hoomd.write.GSD(
-        filename='trajectory.gsd',
-        trigger=hoomd.trigger.Periodic(int(10)),
+        filename=gsd_file_name,
+        trigger=hoomd.trigger.Periodic(int(gsd_write_freq)),
         mode="wb",
         dynamic=["momentum", "property"],
         filter=hoomd.filter.All(),
@@ -148,8 +162,8 @@ def add_hoomd_writers(sim):
     gsd_writer.maximum_write_buffer_size = 64 * 1024 * 1024
 
     table_file = hoomd.write.Table(
-        output=open('log.txt', mode="w", newline="\n"),
-        trigger=hoomd.trigger.Periodic(period=int(10)),
+        output=open(log_file_name, mode="w", newline="\n"),
+        trigger=hoomd.trigger.Periodic(period=int(log_write_freq)),
         logger=logger,
         max_header_len=None,
     )

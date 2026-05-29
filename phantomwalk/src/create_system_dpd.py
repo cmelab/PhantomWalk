@@ -7,7 +7,7 @@ import time
 from dpd_utils import initialize_snapshot_rand_walk,check_bond_length_equilibration,check_inter_particle_distance,add_hoomd_writers,check_pair_energy
 
 
-def create_polymer_system_dpd(num_pol,num_mon,density,k=20000,bond_l=1.0,r_cut=1.15,kT=1.0,A=1000,gamma=800,dt=0.001,particle_spacing=1.1,sim_seed=123,np_seed=1234,write=True,energy=True):
+def create_polymer_system_dpd(num_pol,num_mon,density,k=20000,bond_l=1.0,r_cut=1.15,kT=1.0,A=1000,gamma=800,dt=0.001,particle_spacing=1.1,sim_seed=123,np_seed=1234,write=True,energy=True,gsd_file_name='trajectory.gsd',gsd_write_freq=10,log_file_name='log.txt',log_write_freq=10):
     
     '''
     Initialize a polymer system in a cubic box using a random walk and a HOOMD simulation with DPD forces.
@@ -41,6 +41,14 @@ def create_polymer_system_dpd(num_pol,num_mon,density,k=20000,bond_l=1.0,r_cut=1
         random seed for the HOOMD simulation state
     np_seed : int, default 1234
         seed for random number generator in random walk
+    gsd_file_name : str, default 'trajectory.gsd'
+        the file that the gsd trajectory data will be saved to
+    gsd_write_freq : int, default 10
+        Period to write simulation data to the gsd file.
+    log_file_name : str, default 'log.txt'
+        the file that the .txt log file will be saved to
+    log_write_freq : int, default 10
+        Period to write simulation data to the log file.
 
     -------
     Returns
@@ -73,7 +81,13 @@ def create_polymer_system_dpd(num_pol,num_mon,density,k=20000,bond_l=1.0,r_cut=1
     integrator.forces.append(DPD)
     
     if write:
-        add_hoomd_writers(simulation)
+        add_hoomd_writers(
+            simulation,
+            gsd_file_name,
+            gsd_write_freq,
+            log_file_name,
+            log_write_freq
+        )
     simulation.run(0) 
     for writer in simulation.operations.writers:
         if hasattr(writer, "flush"):
