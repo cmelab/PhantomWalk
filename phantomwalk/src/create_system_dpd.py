@@ -66,7 +66,7 @@ def create_polymer_system_dpd(num_pol,num_mon,density,k=20000,bond_l=1.0,r_cut=1
     simulation.create_state_from_snapshot(frame)
     const_vol = hoomd.md.methods.ConstantVolume(filter=hoomd.filter.All())
     integrator.methods.append(const_vol)
-    nlist = hoomd.md.nlist.Cell(buffer=0.4)
+    nlist = hoomd.md.nlist.Cell(buffer=0.4,exclusions=['bond'])
     simulation.operations.nlist = nlist
     DPD = hoomd.md.pair.DPD(nlist, default_r_cut=r_cut, kT=kT)
     DPD.params[('A', 'A')] = dict(A=A, gamma=gamma)
