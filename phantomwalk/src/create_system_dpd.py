@@ -100,7 +100,7 @@ def create_polymer_system_dpd(num_pol,num_mon,density,k=20000,bond_l=1.0,r_cut=1
 
     if energy:
         shrink_cut = 5
-        while not check_pair_energy(shrink_cut): 
+        while not check_pair_energy(shrink_cut, log_file_name):
             check_time = time.perf_counter()
             if (check_time-start_time) > 60:
                 return num_pol*num_mon, 0
