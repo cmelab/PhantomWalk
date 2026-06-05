@@ -7,7 +7,7 @@ import time
 from dpd_utils import initialize_snapshot_rand_walk,check_bond_length_equilibration,check_inter_particle_distance,add_hoomd_writers,check_pair_energy
 
 
-def create_polymer_system_dpd(num_pol,num_mon,density,k=20000,bond_l=1.0,r_cut=1.15,kT=1.0,A=1000,gamma=800,dt=0.001,particle_spacing=1.1,sim_seed=123,np_seed=1234,write=True,energy=True,gsd_file_name='trajectory.gsd',gsd_write_freq=10,log_file_name='log.txt',log_write_freq=10):
+def create_polymer_system_dpd(num_pol,num_mon,density,k=20000,bond_l=1.0,r_cut=1.15,kT=1.0,A=1000,gamma=800,dt=0.001,simulation_r_cut=1.1,sim_seed=123,np_seed=1234,write=True,energy=True,gsd_file_name='trajectory.gsd',gsd_write_freq=10,log_file_name='log.txt',log_write_freq=10):
     
     '''
     Initialize a polymer system in a cubic box using a random walk and a HOOMD simulation with DPD forces.
@@ -35,7 +35,7 @@ def create_polymer_system_dpd(num_pol,num_mon,density,k=20000,bond_l=1.0,r_cut=1
         DPD drag parameter (mass/time)
     dt : float, default 0.001
         timestep for HOOMD simulation
-    particle_spacing : float, default 1.1
+    simulation_r_cut : float, default 1.1
         condition for ending the soft push simulation
     sim_seed : int, default 123
         seed for the HOOMD simulation state

@@ -170,7 +170,7 @@ def add_hoomd_writers(
     sim.operations.writers.append(gsd_writer)
     sim.operations.writers.append(table_file)
 
-def check_pair_energy(step_cut, log_file_name="log.txt"):
+def check_pair_energy(step_cut=None,last_cut=None,log_file_name="log.txt"):
     """Check whether the pair interaction energy has equilibrated.
 
     Pair energies are read from the HOOMD log file and analyzed
@@ -191,9 +191,36 @@ def check_pair_energy(step_cut, log_file_name="log.txt"):
     """
     log = np.genfromtxt(log_file_name, names=True)
     pairs = log["mdpairDPDenergy"]
-    shrink_cut = step_cut
-    equil, t0, g, neff = is_equilibrated(data=pairs[shrink_cut:], threshold_neff=50) 
+    '''
+    equil, t0, g, neff = is_equilibrated(data=pairs[step_cut:last_cut], threshold_neff=50) 
     if equil:
         return True
     else:
         return False
+    '''
+    return np.mean(pairs[step_cut:last_cut])
+    
+    
+def calculate_pair_energy(A,r,r_cut):
+    '''
+    Calculate the minimum energy for the conservative force to reach at the given radius.
+    energy for each pair in the system
+    '''
+    constant = (1/2)*A*r_cut
+    pe = (A*(r**2))/(2*r_cut) - (A*r) + constant
+    pair_energy = 10*pe/2
+
+    return pair_energy
+
+def simulation_energy_end(A,r,r_cut,last_cut=-5):
+    '''
+    Calculate the minimum energy for the conservative force to reach at the given radius.
+    energy for each pair in the system
+    '''
+    U_goal = calculate_pair_energy(A,r,r_cut)
+    avg_u = check_pair_energy(step_cut=None,last_cut=-10)
+    if avg_u <= U_goal:
+        return True
+    else:
+        return False
+
