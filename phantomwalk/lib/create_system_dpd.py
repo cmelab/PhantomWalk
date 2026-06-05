@@ -30,7 +30,7 @@ def create_polymer_system_dpd(
     log_file_name='log.txt',
     log_write_freq=10
 ):
-    
+   
     '''
     Initialize a polymer system in a cubic box using a random walk and a HOOMD simulation with DPD forces.
 
