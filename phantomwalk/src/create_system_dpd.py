@@ -38,7 +38,7 @@ def create_polymer_system_dpd(num_pol,num_mon,density,k=20000,bond_l=1.0,r_cut=1
     particle_spacing : float, default 1.1
         condition for ending the soft push simulation
     sim_seed : int, default 123
-        random seed for the HOOMD simulation state
+        seed for the HOOMD simulation state
     np_seed : int, default 1234
         seed for random number generator in random walk
     gsd_file_name : str, default 'trajectory.gsd'
@@ -69,12 +69,12 @@ def create_polymer_system_dpd(num_pol,num_mon,density,k=20000,bond_l=1.0,r_cut=1
     harmonic.params["b"] = dict(r0=bond_l, k=k)
     integrator = hoomd.md.Integrator(dt=dt)
     integrator.forces.append(harmonic)
-    simulation = hoomd.Simulation(device=hoomd.device.auto_select(), seed=np.random.randint(sim_seed))
+    simulation = hoomd.Simulation(device=hoomd.device.auto_select(), seed=sim_seed)
     simulation.operations.integrator = integrator 
     simulation.create_state_from_snapshot(frame)
     const_vol = hoomd.md.methods.ConstantVolume(filter=hoomd.filter.All())
     integrator.methods.append(const_vol)
-    nlist = hoomd.md.nlist.Cell(buffer=0.4)
+    nlist = hoomd.md.nlist.Cell(buffer=0.4,exclusions=['bond'])
     simulation.operations.nlist = nlist
     DPD = hoomd.md.pair.DPD(nlist, default_r_cut=r_cut, kT=kT)
     DPD.params[('A', 'A')] = dict(A=A, gamma=gamma)
