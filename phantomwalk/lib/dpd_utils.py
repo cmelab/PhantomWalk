@@ -191,14 +191,14 @@ def check_pair_energy(step_cut=None,last_cut=None,log_file_name="log.txt"):
     """
     log = np.genfromtxt(log_file_name, names=True)
     pairs = log["mdpairDPDenergy"]
-    '''
-    equil, t0, g, neff = is_equilibrated(data=pairs[step_cut:last_cut], threshold_neff=50) 
+
+    equil, t0, g, neff = is_equilibrated(data=pairs[step_cut:], threshold_neff=50) 
     if equil:
         return True
     else:
         return False
-    '''
-    return np.mean(pairs[step_cut:last_cut])
+
+    #return np.mean(pairs[step_cut:last_cut])
     
     
 def calculate_pair_energy(A,r,r_cut):

@@ -99,7 +99,7 @@ def create_polymer_system_dpd(num_pol,num_mon,density,k=20000,bond_l=1.0,r_cut=1
     snap=simulation.state.get_snapshot()
 
     if energy:
-        shrink_cut = 5
+        shrink_cut = int(5)
         while not check_pair_energy(shrink_cut, log_file_name):
             check_time = time.perf_counter()
             if (check_time-start_time) > 60:
@@ -109,7 +109,7 @@ def create_polymer_system_dpd(num_pol,num_mon,density,k=20000,bond_l=1.0,r_cut=1
                 if hasattr(writer, "flush"):
                     writer.flush()
             snap=simulation.state.get_snapshot()
-            shrink_cut += 50
+            shrink_cut += int(50)
     else:
         while not check_inter_particle_distance(snap,minimum_distance=0.95):
             check_time = time.perf_counter()
