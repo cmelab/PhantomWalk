@@ -200,8 +200,7 @@ def check_pair_energy(energy_idx=-1, log_file_name="log.txt"):
         return np.mean(pairs[energy_idx:])
     elif pairs.size == 1:
         return pairs
-   
-    
+
 def calculate_pair_energy(A,r,r_cut,num_pol,num_mon,density):
     '''
     Calculate the minimum energy for the conservative force to reach at the given radius.

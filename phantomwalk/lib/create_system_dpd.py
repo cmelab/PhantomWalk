@@ -20,8 +20,11 @@ def create_polymer_system_dpd(
     dt=0.001,
     sim_seed=1234,
     np_seed=1234,
+<<<<<<< HEAD
     sim_steps_incr=100,
     loop_timeout=60,
+=======
+>>>>>>> afe3484 (energy function updates, notebooks to source code)
     energy=True,
     min_pair_dist=1.05,
     write=True,
@@ -30,7 +33,7 @@ def create_polymer_system_dpd(
     log_file_name='log.txt',
     log_write_freq=10
 ):
-   
+    
     '''
     Initialize a polymer system in a cubic box using a random walk and a HOOMD simulation with DPD forces.
 
@@ -61,10 +64,13 @@ def create_polymer_system_dpd(
         seed for the HOOMD simulation state
     np_seed : int, default 1234
         seed for random number generator in random walk
+<<<<<<< HEAD
     sim_steps_incr : int, default, 100
         the number of steps to run in a loop before checking simulation end criteria
     loop_timeout : int, default 60
         seconds time out to manually end the simulation before it reaches the cutoff, meant to prevent large file creation
+=======
+>>>>>>> afe3484 (energy function updates, notebooks to source code)
     energy : bool, default True
         trigger to use energy cutoff instead of manually building neighbor list
     min_pair_dist : float, default 1.05
@@ -133,7 +139,6 @@ def create_polymer_system_dpd(
     for writer in simulation.operations.writers:
         if hasattr(writer, "flush"):
             writer.flush()
-
     if energy:
         while not simulation_energy_end(
             A=A,
