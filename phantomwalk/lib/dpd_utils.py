@@ -5,7 +5,7 @@ import hoomd
 import time
 from cmeutils.sampling import is_equilibrated
 
-def initialize_snapshot_rand_walk(num_pol, num_mon, density=0.85, bond_length=1.0, seed=1234):
+def initialize_snapshot_rand_walk(num_pol, num_mon, density, bond_length=1.0, seed=1234):
     ''' 
     Create a HOOMD snapshot of a cubic box with the number density given by input parameters. Configure particles using a random walk. 
 
@@ -52,7 +52,7 @@ def initialize_snapshot_rand_walk(num_pol, num_mon, density=0.85, bond_length=1.
 
     return frame
 
-def check_bond_length_equilibration(snap,num_mon,num_pol,max_bond_length=1.1,min_bond_length=0.95):
+def check_bond_length_equilibration(snap, num_mon, num_pol, max_bond_length=1.1, min_bond_length=0.95):
     '''
     Check the bond distances.
     
@@ -74,7 +74,7 @@ def check_bond_length_equilibration(snap,num_mon,num_pol,max_bond_length=1.1,min
     if max_frame_bond_l > max_bond_length or min_frame_bond_l < min_bond_length:
         return False
 
-def check_inter_particle_distance(snap,minimum_distance=0.95):
+def check_inter_particle_distance(snap, minimum_distance=0.95):
     '''
     Check particle separations.
     
@@ -170,7 +170,7 @@ def add_hoomd_writers(
     sim.operations.writers.append(gsd_writer)
     sim.operations.writers.append(table_file)
 
-def check_pair_energy(step_cut=None,last_cut=None,log_file_name="log.txt"):
+def check_pair_energy(energy_idx=-1, log_file_name="log.txt"):
     """Check whether the pair interaction energy has equilibrated.
 
     Pair energies are read from the HOOMD log file and analyzed
@@ -178,48 +178,41 @@ def check_pair_energy(step_cut=None,last_cut=None,log_file_name="log.txt"):
 
     Parameters
     ----------
-    step_cut : int
+    energy_idx : int, default -1
         Number of initial simulation steps to discard before
-        performing equilibration analysis.
+        performing equilibration analysis. Default is to return the last frame.
 
     Returns
     -------
-    bool
-        True if the pair energy timeseries is determined
-        to be equilibrated, otherwise False.
+    float, energy of last frame(s) of dpd simulation
 
     """
     log = np.genfromtxt(log_file_name, names=True)
     pairs = log["mdpairDPDenergy"]
-
-    equil, t0, g, neff = is_equilibrated(data=pairs[step_cut:], threshold_neff=50) 
-    if equil:
-        return True
-    else:
-        return False
-
-    #return np.mean(pairs[step_cut:last_cut])
+    
+    return np.mean(pairs[energy_idx:])
     
     
-def calculate_pair_energy(A,r,r_cut):
+def calculate_pair_energy(A,r,r_cut,num_pol,num_mon,density):
     '''
     Calculate the minimum energy for the conservative force to reach at the given radius.
     energy for each pair in the system
     '''
+    density_scaling = (1.414-density)/((1.414+density)/2)
     constant = (1/2)*A*r_cut
-    pe = (A*(r**2))/(2*r_cut) - (A*r) + constant
-    pair_energy = 10*pe/2
+    U = (A*(r**2))/(2*r_cut) - (A*r) + constant
+    pair_energy = (10*U*num_pol*num_mon*density_scaling)/2
 
     return pair_energy
 
-def simulation_energy_end(A,r,r_cut,last_cut=-5):
+def simulation_energy_end(A,r,r_cut,num_pol,num_mon,density,energy_idx=-1):
     '''
     Calculate the minimum energy for the conservative force to reach at the given radius.
     energy for each pair in the system
     '''
-    U_goal = calculate_pair_energy(A,r,r_cut)
-    avg_u = check_pair_energy(step_cut=None,last_cut=-10)
-    if avg_u <= U_goal:
+    U_goal = calculate_pair_energy(A=A,r=r,r_cut=r_cut,num_pol=num_pol,num_mon=num_mon,density=density)
+    last_U = check_pair_energy(energy_idx=energy_idx)
+    if last_U <= U_goal:
         return True
     else:
         return False

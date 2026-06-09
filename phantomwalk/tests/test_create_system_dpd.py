@@ -5,8 +5,7 @@ from contextlib import suppress
 
 import sys
 import os
-sys.path.append(
-    os.path.abspath(os.path.join(os.path.dirname(__file__), os.path.pardir, 'src')))
+sys.path.append('../lib/')
 import create_system_dpd as dpd
 
 # helper to not have several repetitive try/catch blocks for cleanup

@@ -2,7 +2,11 @@ import pytest
 import numpy as np
 import gsd.hoomd
 
-from your_module import initialize_snapshot_rand_walk
+import sys
+import os
+sys.path.append('../lib/')
+import dpd_utils
+from dpd_utils import initialize_snapshot_rand_walk
 
 @pytest.fixture
 def frame():
