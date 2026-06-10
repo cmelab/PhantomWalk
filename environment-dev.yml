@@ -6,6 +6,7 @@ dependencies:
   - time
   - jupyter
   - pytest
+  - pytest-cov
   - pip
   - pip:
       - build
