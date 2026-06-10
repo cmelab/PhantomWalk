@@ -134,10 +134,6 @@ def create_polymer_system_dpd(
         if hasattr(writer, "flush"):
             writer.flush()
 
-    simulation.run(1) 
-    for writer in simulation.operations.writers:
-        if hasattr(writer, "flush"):
-            writer.flush()
     if energy:
         while not simulation_energy_end(
             A=A,
