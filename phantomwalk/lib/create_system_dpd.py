@@ -20,16 +20,8 @@ def create_polymer_system_dpd(
     dt=0.001,
     sim_seed=1234,
     np_seed=1234,
-<<<<<<< HEAD
-<<<<<<< HEAD
     sim_steps_incr=100,
     loop_timeout=60,
-=======
->>>>>>> afe3484 (energy function updates, notebooks to source code)
-=======
-    sim_steps_incr=100,
-    loop_timeout=60,
->>>>>>> b3281ea (updating logger and adding step and timeout kwargs)
     energy=True,
     min_pair_dist=1.05,
     write=True,
@@ -69,19 +61,10 @@ def create_polymer_system_dpd(
         seed for the HOOMD simulation state
     np_seed : int, default 1234
         seed for random number generator in random walk
-<<<<<<< HEAD
-<<<<<<< HEAD
-=======
->>>>>>> b3281ea (updating logger and adding step and timeout kwargs)
     sim_steps_incr : int, default, 100
         the number of steps to run in a loop before checking simulation end criteria
     loop_timeout : int, default 60
         seconds time out to manually end the simulation before it reaches the cutoff, meant to prevent large file creation
-<<<<<<< HEAD
-=======
->>>>>>> afe3484 (energy function updates, notebooks to source code)
-=======
->>>>>>> b3281ea (updating logger and adding step and timeout kwargs)
     energy : bool, default True
         trigger to use energy cutoff instead of manually building neighbor list
     min_pair_dist : float, default 1.05
