@@ -5,51 +5,144 @@ import hoomd
 import time
 from cmeutils.sampling import is_equilibrated
 
-def initialize_snapshot_rand_walk(num_pol, num_mon, density, bond_length=1.0, seed=1234):
-    ''' 
-    Create a HOOMD snapshot of a cubic box with the number density given by input parameters. Configure particles using a random walk. 
+def initialize_snapshot_rand_walk(
+    num_pol,
+    num_mon, 
+    branch_length=0,            
+    branches_per_chain=0,       
+    density=0.85,
+    bond_length=1.0,
+    seed=1234,
+):
+    '''
+    Create a HOOMD snapshot using vectorized random walks.
 
+    Supports:
+      - Linear monodisperse:    num_mon=int,       branch_length=0, branches_per_chain=0
+      - Linear polydisperse:    num_mon=array(P,), branch_length=0, branches_per_chain=0
+      - Branched monodisperse:  num_mon=int,       branch_length>0, branches_per_chain>0
+      - Branched polydisperse:  num_mon=array(P,), branch_length>0, branches_per_chain>0
+                                  (num_mon gives TOTAL monomers per chain; backbone length
+                                   is inferred as num_mon - branches_per_chain*branch_length)
+
+    Topology is generated along each linear segment (backbone and side chains)
+    independently. Cross-junction angles/dihedrals are not included.
     '''
     rng = np.random.default_rng(seed)
+    is_branched = (branch_length > 0) and (branches_per_chain > 0)
 
-    N = num_pol * num_mon
-    L = np.cbrt(N / density)
+    num_mon_arr  = np.broadcast_to(np.asarray(num_mon, dtype=int), (num_pol,)).copy()
+    branch_total = branches_per_chain * branch_length
+    backbone_arr = num_mon_arr - branch_total           
 
-    positions = np.empty((N, 3))
-    starts = rng.uniform(0, L, size=(num_pol, 3))
+    if is_branched:
+        assert np.all(backbone_arr >= branches_per_chain + 1), (
+            "At least one chain's backbone is too short to host all branch points"
+        )
 
-    thetas = rng.uniform(0,2*np.pi,size=(num_pol,num_mon-1))
-    phis = np.arccos(rng.uniform(-1,1,size=(num_pol,num_mon-1)))
-    x = np.sin(phis)*np.cos(thetas)
-    y = np.sin(phis)*np.sin(thetas)
-    z = np.cos(phis)
+    N           = int(num_mon_arr.sum())
+    max_bb      = int(backbone_arr.max())
+    L           = np.cbrt(N / density)
 
-    deltas = np.stack([x,y,z],axis=2) * bond_length
-    displacements = np.cumsum(deltas, axis=1)
+    def rand_steps(n_chains, n_steps):
+        '''Returns (n_chains, n_steps, 3)'''
+        theta = rng.uniform(0, 2*np.pi, size=(n_chains, n_steps))
+        phi   = np.arccos(rng.uniform(-1, 1, size=(n_chains, n_steps)))
+        return np.stack(
+            [np.sin(phi)*np.cos(theta),
+             np.sin(phi)*np.sin(theta),
+             np.cos(phi)], axis=2
+        ) * bond_length
 
-    positions_view = positions.reshape(num_pol, num_mon, 3)
-    positions_view[:, 0, :] = starts
-    positions_view[:, 1:, :] = starts[:, None, :] + displacements
+    starts   = rng.uniform(0, L, size=(num_pol, 3))
+    bb_steps = rand_steps(num_pol, max_bb - 1)
+    bb_disp  = np.cumsum(bb_steps, axis=1)
 
-    #pbc
+    bb_pad = np.zeros((num_pol, max_bb, 3))
+    bb_pad[:, 0, :]  = starts
+    bb_pad[:, 1:, :] = starts[:, None, :] + bb_disp
+
+    if is_branched:
+        bp_fracs = np.linspace(0, 1, branches_per_chain + 2)[1:-1] 
+        bp_idx   = np.clip(
+            np.round(bp_fracs[None, :] * (backbone_arr[:, None] - 1)).astype(int),
+            1, backbone_arr[:, None] - 2
+        )                                                  
+
+        anchors  = bb_pad[np.arange(num_pol)[:, None], bp_idx]
+        sc_steps = rand_steps(
+            num_pol * branches_per_chain, branch_length - 1
+        ).reshape(num_pol, branches_per_chain, branch_length - 1, 3)
+
+        sc_pad = np.empty((num_pol, branches_per_chain, branch_length, 3))
+        sc_disp = np.cumsum(sc_steps, axis=2)
+        sc_pad[:, :, 0, :]  = anchors
+        sc_pad[:, :, 1:, :] = anchors[:, :, None, :] + sc_disp
+
+    chain_offsets = np.concatenate([[0], num_mon_arr.cumsum()[:-1]])
+    positions     = np.empty((N, 3))
+
+    for p in range(num_pol):
+        bb_len = backbone_arr[p]
+        off    = chain_offsets[p]
+        positions[off:off + bb_len] = bb_pad[p, :bb_len]
+        if is_branched:
+            for b in range(branches_per_chain):
+                sc_off = off + bb_len + b * branch_length
+                positions[sc_off:sc_off + branch_length] = sc_pad[p, b]
+
     positions %= L
-    positions -= L/2
+    positions -= L / 2
 
-    indices = np.arange(N).reshape(num_pol, num_mon)
-    bonds = np.column_stack([
-        indices[:, :-1].ravel(),
-        indices[:, 1:].ravel()
-    ])
+    bond_list     = []
+    angle_list    = []
+    dihedral_list = []
+
+    def linear_topology(idx):
+        '''Append bonds/angles/dihedrals for a 1D array of global monomer indices.'''
+        n = len(idx)
+        if n >= 2:
+            bond_list.append(np.column_stack([idx[:-1], idx[1:]]))
+        if n >= 3:
+            angle_list.append(np.column_stack([idx[:-2], idx[1:-1], idx[2:]]))
+        if n >= 4:
+            dihedral_list.append(np.column_stack([idx[:-3], idx[1:-2], idx[2:-1], idx[3:]]))
+
+    for p in range(num_pol):
+        bb_len = backbone_arr[p]
+        off    = chain_offsets[p]
+
+        linear_topology(off + np.arange(bb_len))
+
+        if is_branched:
+            for b in range(branches_per_chain):
+                sc_off = off + bb_len + b * branch_length
+                sc_idx = sc_off + np.arange(branch_length)
+                linear_topology(sc_idx)
+                bond_list.append([[off + bp_idx[p, b], sc_idx[0]]])
+
+    bonds     = np.vstack(bond_list)
+    angles    = np.vstack(angle_list)    if angle_list    else np.empty((0, 3), dtype=int)
+    dihedrals = np.vstack(dihedral_list) if dihedral_list else np.empty((0, 4), dtype=int)
 
     frame = gsd.hoomd.Frame()
-    frame.particles.types = ['A']
-    frame.particles.N = N
+    frame.particles.types    = ['A']
+    frame.particles.N        = N
     frame.particles.position = positions
-    frame.bonds.N = len(bonds)
-    frame.bonds.group = bonds
-    frame.bonds.types = ['b']
-    frame.configuration.box = [L, L, L, 0, 0, 0]
 
+    frame.bonds.N            = len(bonds)
+    frame.bonds.group        = bonds
+    frame.bonds.types        = ['A-A']
+
+    frame.angles.N           = len(angles)
+    frame.angles.group       = angles
+    frame.angles.types       = ['A-A-A']
+
+    frame.dihedrals.N        = len(dihedrals)
+    frame.dihedrals.group    = dihedrals
+    frame.dihedrals.types    = ['A-A-A-A']
+
+    frame.configuration.box  = [L, L, L, 0, 0, 0]
     return frame
 
 def check_bond_length_equilibration(snap, num_mon, num_pol, max_bond_length=1.1, min_bond_length=0.95):
