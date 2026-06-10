@@ -5,7 +5,7 @@ import hoomd
 import time
 from cmeutils.sampling import is_equilibrated
 
-def initialize_snapshot_rand_walk(num_pol, num_mon, density=0.85, bond_length=1.0, seed=1234):
+def initialize_snapshot_rand_walk(num_pol, num_mon, density, bond_length=1.0, seed=1234):
     ''' 
     Create a HOOMD snapshot of a cubic box with the number density given by input parameters. Configure particles using a random walk. 
 
@@ -52,7 +52,7 @@ def initialize_snapshot_rand_walk(num_pol, num_mon, density=0.85, bond_length=1.
 
     return frame
 
-def check_bond_length_equilibration(snap,num_mon,num_pol,max_bond_length=1.1,min_bond_length=0.95):
+def check_bond_length_equilibration(snap, num_mon, num_pol, max_bond_length=1.1, min_bond_length=0.95):
     '''
     Check the bond distances.
     
@@ -74,7 +74,7 @@ def check_bond_length_equilibration(snap,num_mon,num_pol,max_bond_length=1.1,min
     if max_frame_bond_l > max_bond_length or min_frame_bond_l < min_bond_length:
         return False
 
-def check_inter_particle_distance(snap,minimum_distance=0.95):
+def check_inter_particle_distance(snap, minimum_distance=0.95):
     '''
     Check particle separations.
     
@@ -150,27 +150,34 @@ def add_hoomd_writers(
     for f in sim.operations.integrator.forces:
         logger.add(f, quantities=["energy"])
         gsd_logger.add(f, quantities=["energy"])
-
+    
+    gsd_trigger = hoomd.trigger.Or([
+        hoomd.trigger.Before(2),
+        hoomd.trigger.Periodic(int(gsd_write_freq))])
+    
     gsd_writer = hoomd.write.GSD(
         filename=gsd_file_name,
-        trigger=hoomd.trigger.Periodic(int(gsd_write_freq)),
+        trigger=gsd_trigger,
         mode="wb",
         dynamic=["momentum", "property"],
         filter=hoomd.filter.All(),
         logger=gsd_logger,
     )
     gsd_writer.maximum_write_buffer_size = 64 * 1024 * 1024
+    log_trigger = hoomd.trigger.Or([
+        hoomd.trigger.Before(2),
+        hoomd.trigger.Periodic(int(log_write_freq))])
 
     table_file = hoomd.write.Table(
         output=open(log_file_name, mode="w", newline="\n"),
-        trigger=hoomd.trigger.Periodic(period=int(log_write_freq)),
+        trigger=log_trigger,
         logger=logger,
         max_header_len=None,
     )
     sim.operations.writers.append(gsd_writer)
     sim.operations.writers.append(table_file)
 
-def check_pair_energy(step_cut, log_file_name="log.txt"):
+def check_pair_energy(energy_idx=-1, log_file_name="log.txt"):
     """Check whether the pair interaction energy has equilibrated.
 
     Pair energies are read from the HOOMD log file and analyzed
@@ -178,22 +185,43 @@ def check_pair_energy(step_cut, log_file_name="log.txt"):
 
     Parameters
     ----------
-    step_cut : int
+    energy_idx : int, default -1
         Number of initial simulation steps to discard before
-        performing equilibration analysis.
+        performing equilibration analysis. Default is to return the last frame.
 
     Returns
     -------
-    bool
-        True if the pair energy timeseries is determined
-        to be equilibrated, otherwise False.
+    float, energy of last frame(s) of dpd simulation
 
     """
     log = np.genfromtxt(log_file_name, names=True)
     pairs = log["mdpairDPDenergy"]
-    shrink_cut = step_cut
-    equil, t0, g, neff = is_equilibrated(data=pairs[shrink_cut:], threshold_neff=50) 
-    if equil:
+    if pairs.size > 1:
+        return np.mean(pairs[energy_idx:])
+    elif pairs.size == 1:
+        return pairs
+    
+def calculate_pair_energy(A,r,r_cut,num_pol,num_mon,density):
+    '''
+    Calculate the minimum energy for the conservative force to reach at the given radius.
+    energy for each pair in the system
+    '''
+    density_scaling = (1.414-density)/((1.414+density)/2)
+    constant = (1/2)*A*r_cut
+    U = (A*(r**2))/(2*r_cut) - (A*r) + constant
+    pair_energy = (10*U*num_pol*num_mon*density_scaling)/2
+
+    return pair_energy
+
+def simulation_energy_end(A,r,r_cut,num_pol,num_mon,density,energy_idx=-1):
+    '''
+    Calculate the minimum energy for the conservative force to reach at the given radius.
+    energy for each pair in the system
+    '''
+    U_goal = calculate_pair_energy(A=A,r=r,r_cut=r_cut,num_pol=num_pol,num_mon=num_mon,density=density)
+    last_U = check_pair_energy(energy_idx=energy_idx)
+    if last_U <= U_goal:
         return True
     else:
         return False
+

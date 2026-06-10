@@ -3,7 +3,7 @@ import datetime
 import os
 from contextlib import suppress
 
-import phantomwalk.src.create_system_dpd as dpd
+import phantomwalk.lib.create_system_dpd as dpd
 
 # helper to not have several repetitive try/catch blocks for cleanup
 def rm_files(*files):
