@@ -233,7 +233,7 @@ def generate_rdf(
     r_max=3.0,
     r_min=0.0,
     gsd_file_name="trajectory.gsd",
-    output_file_name="rdf.csv"
+    output_file_name="rdf.txt"
 ):
     '''
     Generate a radial distribution function for the provided GSD file and save
@@ -261,14 +261,13 @@ def generate_rdf(
     output_file_name : str, default 'rdf.csv'
         The file to output the RDF data into.
     '''
-    rdf = freud.density.RDF(bins=bins, r_max=3, r_min=0)
+    rdf = freud.density.RDF(bins=bins, r_max=r_max, r_min=r_min)
     traj = gsd.hoomd.open(gsd_file_name, 'r')
     for frame in traj[start_idx:end_idx]:
         rdf.compute(system=frame, reset=False)
 
-    with open(output_file_name, 'w', newline='') as output:
-        csvwriter = csv.writer(output, delimiter='  ')
-        csvwriter.writerow(['r', 'rdf'])
-        for r, rdf in zip(rdf.r, rdf.rdf):
-            csvwriter.writerow([str(r), str(rdf)])
-
+    np.savetxt(
+        fname=output_file_name,
+        X=np.column_stack((rdf.bin_centers, rdf.rdf)),
+        header="r  rdf"
+    )
