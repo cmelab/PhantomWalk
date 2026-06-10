@@ -4,8 +4,14 @@ import gsd, gsd.hoomd
 import hoomd 
 import time
 
-from dpd_utils import initialize_snapshot_rand_walk,check_bond_length_equilibration,check_inter_particle_distance,add_hoomd_writers,check_pair_energy,simulation_energy_end
-
+from phantomwalk.lib.dpd_utils import (
+    initialize_snapshot_rand_walk,
+    check_bond_length_equilibration,
+    check_inter_particle_distance,
+    add_hoomd_writers,
+    simulation_energy_end,
+    generate_rdf
+)
 
 def create_polymer_system_dpd(
     num_pol,
@@ -28,7 +34,15 @@ def create_polymer_system_dpd(
     gsd_file_name='trajectory.gsd',
     gsd_write_freq=10,
     log_file_name='log.txt',
-    log_write_freq=10
+    log_write_freq=10,
+
+    # rdf parameters
+    rdf_start_idx=-1,
+    rdf_end_idx=None,
+    rdf_file_name='rdf.txt',
+    rdf_bins=300,
+    rdf_r_max=3.0,
+    rdf_r_min=0.0
 ):
     
     '''
@@ -79,6 +93,22 @@ def create_polymer_system_dpd(
         the file that the .txt log file will be saved to
     log_write_freq : int, default 10
         Period to write simulation data to the log file.
+    rdf_start_idx : int, default -1
+        Which frame to use for the start of the RDF average. Supplying None or 0
+        will use the first frame. Supports negative indices.
+    rdf_end_idx : int, default None
+        Which frame to use for the last frame of the RDF average. Supplying None
+        will use the last frame. Supports negative indices.
+    rdf_bins : int, default 300
+        How many bins to use for the RDF histogram
+    rdf_r_max : float, default 3.0
+        Maximum interparticle distance to include in the RDF calculation. If
+        this value is greater than half the box length, then that will be used
+        instead.
+    rdf_r_min : float, default 0.0
+        Minimum interparticle distance to include in the RDF calculation.
+    rdf_file_name : str, default 'rdf.txt'
+        The file to output the RDF data into.
 
     -------
     Returns
@@ -146,6 +176,15 @@ def create_polymer_system_dpd(
             check_time = time.perf_counter()
             if (check_time-start_time) > loop_timeout:
                 print("Simulation timed out")
+                generate_rdf(
+                    start_idx=rdf_start_idx,
+                    end_idx=rdf_end_idx,
+                    bins=rdf_bins,
+                    r_max=rdf_r_max,
+                    r_min=rdf_r_min,
+                    gsd_file_name=gsd_file_name,
+                    output_file_name=rdf_file_name
+                )
                 return snap, 0
             simulation.run(sim_steps_incr)
             for writer in simulation.operations.writers:
@@ -157,6 +196,15 @@ def create_polymer_system_dpd(
             check_time = time.perf_counter()
             if (check_time-start_time) > loop_timeout:
                 print("Simulation timed out")
+                generate_rdf(
+                    start_idx=rdf_start_idx,
+                    end_idx=rdf_end_idx,
+                    bins=rdf_bins,
+                    r_max=rdf_r_max,
+                    r_min=rdf_r_min,
+                    gsd_file_name=gsd_file_name,
+                    output_file_name=rdf_file_name
+                )
                 return snap,0
             simulation.run(sim_steps_incr)
             for writer in simulation.operations.writers:
@@ -167,4 +215,13 @@ def create_polymer_system_dpd(
     end_time = time.perf_counter()
     total_time = end_time - start_time
     print("Total build and simulation time:", end_time - start_time)
+    generate_rdf(
+        start_idx=rdf_start_idx,
+        end_idx=rdf_end_idx,
+        bins=rdf_bins,
+        r_max=rdf_r_max,
+        r_min=rdf_r_min,
+        gsd_file_name=gsd_file_name,
+        output_file_name=rdf_file_name
+    )
     return snap, total_time

@@ -258,7 +258,7 @@ def generate_rdf(
         Minimum interparticle distance to include in the calculation.
     gsd_file_name : str, default 'trajectory.gsd'
         The file to read the trajectory data used for calculating the RDF.
-    output_file_name : str, default 'rdf.csv'
+    output_file_name : str, default 'rdf.txt'
         The file to output the RDF data into.
     '''
     rdf = freud.density.RDF(bins=bins, r_max=r_max, r_min=r_min)
