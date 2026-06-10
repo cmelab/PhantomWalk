@@ -150,20 +150,27 @@ def add_hoomd_writers(
     for f in sim.operations.integrator.forces:
         logger.add(f, quantities=["energy"])
         gsd_logger.add(f, quantities=["energy"])
-
+    
+    gsd_trigger = hoomd.trigger.Or([
+        hoomd.trigger.Before(2),
+        hoomd.trigger.Periodic(int(gsd_write_freq))])
+    
     gsd_writer = hoomd.write.GSD(
         filename=gsd_file_name,
-        trigger=hoomd.trigger.Periodic(int(gsd_write_freq)),
+        trigger=gsd_trigger,
         mode="wb",
         dynamic=["momentum", "property"],
         filter=hoomd.filter.All(),
         logger=gsd_logger,
     )
     gsd_writer.maximum_write_buffer_size = 64 * 1024 * 1024
+    log_trigger = hoomd.trigger.Or([
+        hoomd.trigger.Before(2),
+        hoomd.trigger.Periodic(int(log_write_freq))])
 
     table_file = hoomd.write.Table(
         output=open(log_file_name, mode="w", newline="\n"),
-        trigger=hoomd.trigger.Periodic(period=int(log_write_freq)),
+        trigger=log_trigger,
         logger=logger,
         max_header_len=None,
     )
@@ -189,8 +196,10 @@ def check_pair_energy(energy_idx=-1, log_file_name="log.txt"):
     """
     log = np.genfromtxt(log_file_name, names=True)
     pairs = log["mdpairDPDenergy"]
-    
-    return np.mean(pairs[energy_idx:])
+    if pairs.size > 1:
+        return np.mean(pairs[energy_idx:])
+    elif pairs.size == 1:
+        return pairs
     
     
 def calculate_pair_energy(A,r,r_cut,num_pol,num_mon,density):

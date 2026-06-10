@@ -15,11 +15,13 @@ def create_polymer_system_dpd(
     bond_l=1.0,
     r_cut=1.15,
     kT=1.0,
-    A=1000,
+    A=800,
     gamma=800,
     dt=0.001,
     sim_seed=1234,
     np_seed=1234,
+    sim_steps_incr=100,
+    loop_timeout=60,
     energy=True,
     min_pair_dist=1.05,
     write=True,
@@ -59,6 +61,10 @@ def create_polymer_system_dpd(
         seed for the HOOMD simulation state
     np_seed : int, default 1234
         seed for random number generator in random walk
+    sim_steps_incr : int, default, 100
+        the number of steps to run in a loop before checking simulation end criteria
+    loop_timeout : int, default 60
+        seconds time out to manually end the simulation before it reaches the cutoff, meant to prevent large file creation
     energy : bool, default True
         trigger to use energy cutoff instead of manually building neighbor list
     min_pair_dist : float, default 1.05
@@ -122,15 +128,11 @@ def create_polymer_system_dpd(
             log_file_name,
             log_write_freq
         )
-    simulation.run(0) 
+
+    simulation.run(1) 
     for writer in simulation.operations.writers:
         if hasattr(writer, "flush"):
             writer.flush()
-    simulation.run(100)
-    for writer in simulation.operations.writers:
-        if hasattr(writer, "flush"):
-            writer.flush()
-    snap=simulation.state.get_snapshot()
 
     if energy:
         while not simulation_energy_end(
@@ -142,21 +144,21 @@ def create_polymer_system_dpd(
             density=density
         ):
             check_time = time.perf_counter()
-            if (check_time-start_time) > 60:
+            if (check_time-start_time) > loop_timeout:
                 print("Simulation timed out")
                 return snap, 0
-            simulation.run(100)
+            simulation.run(sim_steps_incr)
             for writer in simulation.operations.writers:
                 if hasattr(writer, "flush"):
                     writer.flush()
             snap=simulation.state.get_snapshot()
     else:
-        while not check_inter_particle_distance(snap,minimum_distance=0.95):
+        while not check_inter_particle_distance(snap,minimum_distance=min_pair_dist):
             check_time = time.perf_counter()
-            if (check_time-start_time) > 7200:
+            if (check_time-start_time) > loop_timeout:
                 print("Simulation timed out")
                 return snap,0
-            simulation.run(1000)
+            simulation.run(sim_steps_incr)
             for writer in simulation.operations.writers:
                 if hasattr(writer, "flush"):
                     writer.flush()
