@@ -4,6 +4,7 @@ import gsd, gsd.hoomd
 import hoomd 
 import time
 from cmeutils.sampling import is_equilibrated
+import csv
 
 def initialize_snapshot_rand_walk(num_pol, num_mon, density, bond_length=1.0, seed=1234):
     ''' 
@@ -224,4 +225,50 @@ def simulation_energy_end(A,r,r_cut,num_pol,num_mon,density,energy_idx=-1):
         return True
     else:
         return False
+
+def generate_rdf(
+    start_idx = -1,
+    end_idx = None,
+    bins=300,
+    r_max=3.0,
+    r_min=0.0,
+    gsd_file_name="trajectory.gsd",
+    output_file_name="rdf.csv"
+):
+    '''
+    Generate a radial distribution function for the provided GSD file and save
+    the data to the provided output file.
+
+    ----------
+    Parameters
+    ----------
+    start_idx : int, default -1
+        Which frame to use for the start of the RDF average. Supplying None or 0
+        will use the first frame. Supports negative indices.
+    end_idx : int, default None
+        Which frame to use for the last frame of the RDF average. Supplying None
+        will use the last frame. Supports negative indices.
+    bins : int, default 300
+        How many bins to use for the histogram
+    r_max : float, default 3.0
+        Maximum interparticle distance to include in the calculation. If this
+        value is greater than half the box length, then that will be used
+        instead.
+    r_min : float, default 0.0
+        Minimum interparticle distance to include in the calculation.
+    gsd_file_name : str, default 'trajectory.gsd'
+        The file to read the trajectory data used for calculating the RDF.
+    output_file_name : str, default 'rdf.csv'
+        The file to output the RDF data into.
+    '''
+    rdf = freud.density.RDF(bins=bins, r_max=3, r_min=0)
+    traj = gsd.hoomd.open(gsd_file_name, 'r')
+    for frame in traj[start_idx:end_idx]:
+        rdf.compute(system=frame, reset=False)
+
+    with open(output_file_name, 'w', newline='') as output:
+        csvwriter = csv.writer(output, delimiter='  ')
+        csvwriter.writerow(['r', 'rdf'])
+        for r, rdf in zip(rdf.r, rdf.rdf):
+            csvwriter.writerow([str(r), str(rdf)])
 
