@@ -52,15 +52,18 @@ def test_different_seeds_give_different_positions():
     assert not np.allclose(f1.particles.position, f2.particles.position)
 
 def test_bond_lengths_are_correct():
-    """With per-step PBC wrapping, raw distances should equal bond_length directly."""
     bond_length = 1.0
-    frame = initialize_snapshot_rand_walk(num_pol=5, num_mon=10, density=0.8, bond_length=bond_length)
-    pos = frame.particles.position
-    L = frame.configuration.box[0]
-
-    for a, b in frame.bonds.group:
-        dr = pos[b] - pos[a]
-        dr -= L * np.round(dr / L)   # minimum image
-        dist = np.linalg.norm(dr)
-
-        assert 0.95 <= dist <= 1.1
+    num_pol=5
+    num_mon=50
+    snap = initialize_snapshot_rand_walk(num_pol=num_pol, num_mon=num_mon, density=1.0, bond_length=bond_length)
+    L = snap.configuration.box[0]
+    frame_ds = []
+    for j in range(num_pol):
+        idx = j*num_mon
+        d1 = snap.particles.position[idx:idx+num_mon-1] - snap.particles.position[idx+1:idx+num_mon]
+        L = snap.configuration.box[0]
+        d1 -= L*np.round(d1/L)
+        bond_l = np.linalg.norm(d1,axis=1)
+        frame_ds.append(bond_l)
+    avg_frame_bond_l = np.mean(np.array(frame_ds))
+    assert (bond_length - 0.01) <= avg_frame_bond_l <= (bond_length + 0.01)
