@@ -106,7 +106,7 @@ def create_polymer_system_dpd(
     build_stop = time.perf_counter()
     print("Total build time: ", build_stop-start_time)
     harmonic = hoomd.md.bond.Harmonic()
-    harmonic.params["b"] = dict(r0=bond_l, k=k)
+    harmonic.params['A-A'] = dict(r0=bond_l, k=k)
     integrator = hoomd.md.Integrator(dt=dt)
     integrator.forces.append(harmonic)
     simulation = hoomd.Simulation(device=hoomd.device.auto_select(), seed=sim_seed)
