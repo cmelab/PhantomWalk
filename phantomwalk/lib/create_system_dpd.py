@@ -121,7 +121,7 @@ def create_polymer_system_dpd(
     integrator.forces.append(DPD)
     
     if write:
-        add_hoomd_writers(
+        rdf = add_hoomd_writers(
             simulation,
             gsd_file_name,
             gsd_write_freq,
@@ -167,4 +167,7 @@ def create_polymer_system_dpd(
     end_time = time.perf_counter()
     total_time = end_time - start_time
     print("Total build and simulation time:", end_time - start_time)
+    np.savetxt(
+        "rdf.csv", np.vstack((rdf.bin_centers, rdf.rdf)).T, delimiter=",", header="r, g(r)"
+    )
     return snap, total_time
