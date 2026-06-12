@@ -3,10 +3,7 @@ import datetime
 import os
 from contextlib import suppress
 
-import sys
-import os
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), os.path.pardir, 'lib')))
-import create_system_dpd as dpd
+import phantomwalk.lib.create_system_dpd as dpd
 
 # helper to not have several repetitive try/catch blocks for cleanup
 def rm_files(*files):
@@ -17,8 +14,8 @@ def rm_files(*files):
             pass
 
 def test_creation():
-    s = dpd.create_polymer_system_dpd(num_pol=5, num_mon=10, density=0.5)
-    assert s > 0
+    snap, time = dpd.create_polymer_system_dpd(num_pol=5, num_mon=10, density=0.5)
+    assert time > 0
 
 def test_custom_log_files():
     # remove files that might've been output by other tests so that file loading

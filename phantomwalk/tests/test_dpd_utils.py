@@ -2,11 +2,7 @@ import pytest
 import numpy as np
 import gsd.hoomd
 
-import sys
-import os
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), os.path.pardir, 'lib')))
-import dpd_utils
-from dpd_utils import initialize_snapshot_rand_walk
+from phantomwalk.lib.dpd_utils import initialize_snapshot_rand_walk
 
 @pytest.fixture
 def frame():

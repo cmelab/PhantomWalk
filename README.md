@@ -12,6 +12,47 @@ Build a software environment using the `environment.yml` file and the command ``
 4 - Replace the random walk in the DPD workflow with mbuild self-avoiding random walk.
 5 - Run DPD on a rigid body model used for anisotropic coarse-graining. Based on flowerMD classes.
 
-## signac
-These files are meant to be utilized on supercomputers to run parallel simulations of this workflow. 
+## Installation
 
+First, clone the PhantomWalk repository:
+
+``` sh
+git clone git@github.com:cmelab/PhantomWalk
+cd PhantomWalk
+```
+
+Set up & activate the conda environment shipped with PhantomWalk:
+
+``` sh
+conda env create -f ./environment.yml
+conda activate phantomwalk
+```
+
+Install PhantomWalk into the environment with `pip`:
+
+``` sh
+python -m pip install -e .
+```
+
+### Development Environment
+
+If PhantomWalk is being installed for development purposes, the dev environment
+should be used instead, which provides packages necessary for [testing](#tests).
+
+``` sh
+conda env create -f ./environment-dev.yml
+conda activate
+```
+
+## Tests
+
+Before running tests, ensure you have activated the [PhantomWalk dev environment](#development-environment).
+
+PhantomWalk tests can be run by invoking `pytest` in the PhantomWalk repo:
+
+``` sh
+pytest
+```
+
+See the [pytest documentation](https://docs.pytest.org/en/latest/contents.html)
+for more details on how `pytest` works and how to use it.
