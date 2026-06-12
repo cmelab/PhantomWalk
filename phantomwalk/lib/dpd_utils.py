@@ -206,10 +206,10 @@ def calculate_pair_energy(A,r,r_cut,num_pol,num_mon,density):
     Calculate the minimum energy for the conservative force to reach at the given radius.
     energy for each pair in the system
     '''
-    density_scaling = (1.414-density)/((1.414+density)/2)
+    density_scaling = (density/1.414)**2
     constant = (1/2)*A*r_cut
-    U = (A*(r**2))/(2*r_cut) - (A*r) + constant
-    pair_energy = (10*U*num_pol*num_mon*density_scaling)/2
+    U = ((A*(r**2))/(2*r_cut)) - (A*r) + constant
+    pair_energy = (13*U*num_pol*num_mon*density_scaling)/2
 
     return pair_energy
 
