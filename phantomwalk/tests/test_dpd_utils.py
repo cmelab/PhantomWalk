@@ -64,3 +64,27 @@ def test_bond_lengths_are_correct():
         dist = np.linalg.norm(dr)
 
         assert 0.95 <= dist <= 1.1
+
+def test_linear_mono_system():
+    frame = initialize_snapshot_rand_walk(num_pol=10, num_mon=20)
+
+def test_linear_poly_system():
+    frame1 = initialize_snapshot_rand_walk(num_pol=5, num_mon=[10, 15, 13])
+    frame2 = initialize_snapshot_rand_walk(num_pol=[1, 2, 1], num_mon=[10, 15, 13])
+
+def test_branched_mono_system():
+    frame = initialize_snapshot_rand_walk(
+        num_pol=5, 
+        num_mon=10,                   # ← backbone length (was: backbone_length=10)
+        branch_length=4, 
+        branches_per_chain=2
+    )
+
+def test_idx_branched_mono_system():
+    frame = initialize_snapshot_rand_walk(
+        num_pol=5, 
+        num_mon=10,
+        branch_length=4, 
+        branches_per_chain=2,
+        branch_indices=[2, 7]         # Attach at backbone positions 2 and 7
+    )

@@ -11,6 +11,8 @@ def create_polymer_system_dpd(
     num_pol,
     num_mon,
     density,
+    branch_length=0,            
+    branches_per_chain=0,
     k=20000,
     bond_l=1.0,
     r_cut=1.15,
@@ -98,6 +100,8 @@ def create_polymer_system_dpd(
     frame = initialize_snapshot_rand_walk(
         num_mon=num_mon,
         num_pol=num_pol,
+        branch_length=branch_length,            
+        branches_per_chain=branches_per_chain,
         bond_length=bond_l,
         density=density,
         seed=np_seed
