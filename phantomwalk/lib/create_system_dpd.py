@@ -90,9 +90,9 @@ def create_polymer_system_dpd(
         execution time of the DPD workflow, build + simulation wall time
         
     '''
-    print(num_pol*num_mon)
-    print(f"\nRunning with A={A}, gamma={gamma}, k={k}, "
-          f"num_pol={num_pol}, num_mon={num_mon}")
+    #print(num_pol*num_mon)
+    #print(f"\nRunning with A={A}, gamma={gamma}, k={k}, "
+    #      f"num_pol={num_pol}, num_mon={num_mon}")
     start_time = time.perf_counter()
     
     frame = initialize_snapshot_rand_walk(
@@ -104,7 +104,7 @@ def create_polymer_system_dpd(
     )
     
     build_stop = time.perf_counter()
-    print("Total build time: ", build_stop-start_time)
+    #print("Total build time: ", build_stop-start_time)
     harmonic = hoomd.md.bond.Harmonic()
     harmonic.params["b"] = dict(r0=bond_l, k=k)
     integrator = hoomd.md.Integrator(dt=dt)
@@ -121,7 +121,7 @@ def create_polymer_system_dpd(
     integrator.forces.append(DPD)
     
     if write:
-        add_hoomd_writers(
+        rdf = add_hoomd_writers(
             simulation,
             gsd_file_name,
             gsd_write_freq,
@@ -166,5 +166,9 @@ def create_polymer_system_dpd(
 
     end_time = time.perf_counter()
     total_time = end_time - start_time
-    print("Total build and simulation time:", end_time - start_time)
+    #print("Total build and simulation time:", end_time - start_time)
+    np.savetxt(
+        "rdf.csv", np.vstack((rdf.bin_centers, rdf.rdf)).T, delimiter=",", header="r, g(r)"
+    )
+    #return snap, total_time
     return simulation.state.get_snapshot(), total_time

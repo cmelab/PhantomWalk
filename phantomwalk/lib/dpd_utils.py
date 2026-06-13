@@ -128,6 +128,22 @@ def add_hoomd_writers(
         and does not return a value.
 
     """
+
+    class FreudRDFCalc(hoomd.custom.Action):
+        """Compute RDF periodically as the simulation progresses."""
+    
+        def __init__(self, sim, rdf):
+            self._sim = sim
+            self._rdf = rdf
+    
+        def act(self, timestep):
+            snap = self._sim.state.get_snapshot()
+            self._rdf.compute(system=snap, reset=True)
+
+    rdf = freud.density.RDF(bins=100, r_max=2.0)
+    rdf_calc = FreudRDFCalc(sim, rdf)
+
+    
     gsd_logger = hoomd.logging.Logger(
         categories=["scalar", "string", "sequence"]
     )
@@ -174,8 +190,13 @@ def add_hoomd_writers(
         logger=logger,
         max_header_len=None,
     )
+    
+    rdf_action = hoomd.write.CustomWriter(action=rdf_calc, trigger=log_trigger)
+    sim.operations.writers.append(rdf_action)
+    
     sim.operations.writers.append(gsd_writer)
     sim.operations.writers.append(table_file)
+    return rdf
 
 def check_pair_energy(energy_idx=-1, log_file_name="log.txt"):
     """Check whether the pair interaction energy has equilibrated.
