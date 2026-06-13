@@ -1,3 +1,7 @@
+# Output files from MD runs
+*.gsd
+*.txt
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[codz]
@@ -11,10 +15,8 @@ phantomwalk/examples/log.txt
 *.so
 
 # Distribution / packaging
-.Python
-build/
-develop-eggs/
 dist/
+<<<<<<< HEAD
 downloads/
 eggs/
 .eggs/
@@ -25,9 +27,6 @@ var/
 wheels/
 share/python-wheels/
 *.egg-info/
-.installed.cfg
-*.egg
-MANIFEST
 
 # PyInstaller
 #  Usually these files are written by a python script from a template

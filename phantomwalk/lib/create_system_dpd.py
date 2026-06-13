@@ -141,17 +141,17 @@ def create_polymer_system_dpd(
             r_cut=r_cut,
             num_pol=num_pol,
             num_mon=num_mon,
-            density=density
+            density=density,
+            log_file_name=log_file_name,
         ):
             check_time = time.perf_counter()
             if (check_time-start_time) > loop_timeout:
                 print("Simulation timed out")
-                return snap, 0
+                return simulation.state.get_snapshot(), 0
             simulation.run(sim_steps_incr)
             for writer in simulation.operations.writers:
                 if hasattr(writer, "flush"):
                     writer.flush()
-            snap=simulation.state.get_snapshot()
     else:
         while not check_inter_particle_distance(snap,minimum_distance=min_pair_dist):
             check_time = time.perf_counter()
@@ -163,11 +163,12 @@ def create_polymer_system_dpd(
                 if hasattr(writer, "flush"):
                     writer.flush()
             snap=simulation.state.get_snapshot()
-        
+
     end_time = time.perf_counter()
     total_time = end_time - start_time
     #print("Total build and simulation time:", end_time - start_time)
     np.savetxt(
         "rdf.csv", np.vstack((rdf.bin_centers, rdf.rdf)).T, delimiter=",", header="r, g(r)"
     )
-    return snap, total_time
+    #return snap, total_time
+    return simulation.state.get_snapshot(), total_time
