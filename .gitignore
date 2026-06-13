@@ -16,7 +16,6 @@ phantomwalk/examples/log.txt
 
 # Distribution / packaging
 dist/
-<<<<<<< HEAD
 downloads/
 eggs/
 .eggs/
