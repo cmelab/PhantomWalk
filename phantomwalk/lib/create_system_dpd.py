@@ -91,8 +91,8 @@ def create_polymer_system_dpd(
         
     '''
     #print(num_pol*num_mon)
-    print(f"\nRunning with A={A}, gamma={gamma}, k={k}, "
-          f"num_pol={num_pol}, num_mon={num_mon}")
+    #print(f"\nRunning with A={A}, gamma={gamma}, k={k}, "
+    #      f"num_pol={num_pol}, num_mon={num_mon}")
     start_time = time.perf_counter()
     
     frame = initialize_snapshot_rand_walk(

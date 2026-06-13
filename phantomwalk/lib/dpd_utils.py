@@ -140,7 +140,7 @@ def add_hoomd_writers(
             snap = self._sim.state.get_snapshot()
             self._rdf.compute(system=snap, reset=True)
 
-    rdf = freud.density.RDF(bins=50, r_max=4)
+    rdf = freud.density.RDF(bins=100, r_max=2.0)
     rdf_calc = FreudRDFCalc(sim, rdf)
 
     
