@@ -110,9 +110,9 @@ def add_hoomd_writers(
     gsd_logger.add(thermo_props, quantities=log_quantities)
     logger.add(thermo_props, quantities=log_quantities)
 
-    for f in sim.operations.integrator.forces:
-        logger.add(f, quantities=["energy"])
-        gsd_logger.add(f, quantities=["energy"])
+#    for f in sim.operations.integrator.forces:
+#        logger.add(f, quantities=["energy"])
+#        gsd_logger.add(f, quantities=["energy"])
     
     gsd_trigger = hoomd.trigger.Or([
         hoomd.trigger.Before(2),

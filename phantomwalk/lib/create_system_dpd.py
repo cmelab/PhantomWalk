@@ -174,3 +174,126 @@ def create_polymer_system_dpd(
     total_time = end_time - start_time
     np.savetxt( "rdf.csv", np.vstack((rdf.bin_centers, rdf.rdf)).T, delimiter=",", header="r, g(r)")
     return simulation.state.get_snapshot(), closest, total_time, maxPerParticle
+
+
+
+        
+def ejfire(
+    num_pol,
+    num_mon,
+    density,
+    A=50000,
+    k=50000,
+    bond_l=1.0,
+    r_cut=1.01,
+    kT=1.0,
+    gamma=1200,
+    dt=0.001,
+    sim_seed=1234,
+    np_seed=1234,
+    sim_steps_incr=100,
+    loop_timeout=60,
+    min_pair_dist=0.80,
+    energy_scaling= 1,
+    bond_tolerance = 0.05,
+    write=True,
+    gsd_file_name='trajectory.gsd',
+    gsd_write_freq=10,
+    log_file_name='log.txt',
+    log_write_freq=10
+):
+    start_time = time.perf_counter()
+    frame = initialize_snapshot_rand_walk(
+        num_mon=num_mon,
+        num_pol=num_pol,
+        bond_length=bond_l,
+        density=density,
+        seed=np_seed
+    )
+
+
+    build_stop = time.perf_counter()
+    harmonic = hoomd.md.bond.Harmonic()
+    harmonic.params["b"] = dict(r0=bond_l, k=k)
+    integrator = hoomd.md.Integrator(dt=dt)
+    integrator.forces.append(harmonic)
+    simulation = hoomd.Simulation(device=hoomd.device.auto_select(), seed=sim_seed)
+    simulation.operations.integrator = integrator 
+    simulation.create_state_from_snapshot(frame)
+    const_vol = hoomd.md.methods.ConstantVolume(filter=hoomd.filter.All())
+    integrator.methods.append(const_vol)
+    nlist = hoomd.md.nlist.Cell(buffer=0.4,exclusions=['bond'])
+    simulation.operations.nlist = nlist
+    DPD = hoomd.md.pair.DPD(nlist, default_r_cut=r_cut, kT=kT)
+    DPD.params[('A', 'A')] = dict(A=A, gamma=gamma)
+    integrator.forces.append(DPD)
+
+    fire = hoomd.md.minimize.FIRE(dt=dt,force_tol=1e-2, angmom_tol=1000, energy_tol=1e-2)
+    fire.methods.append(const_vol)
+    fire.forces.append(DPD)
+    fire.forces.append(harmonic)
+
+    N = num_mon*num_pol
+    maxPerParticle = A*( (min_pair_dist*min_pair_dist)/(2*r_cut) - min_pair_dist + r_cut/2)
+    maxPerParticle *= density*density*energy_scaling
+    maxPerBond = k*bond_tolerance*bond_tolerance/2
+    #print("max per particle= {:.2f}, max per bond= {:.2f}".format(maxPerParticle, maxPerBond))
+    
+    if write:
+        rdf,thermo = add_hoomd_writers( simulation, gsd_file_name, gsd_write_freq, log_file_name,log_write_freq )
+
+    simulation.run(1)
+    for writer in simulation.operations.writers:
+        if hasattr(writer, "flush"):
+            writer.flush()
+
+    while DPD.energy/N > maxPerParticle:
+        check_time = time.perf_counter()
+        if (check_time-start_time) > loop_timeout:
+            print("Simulation timed out in energy")
+            return simulation.state.get_snapshot(), get_close(rdf), loop_timeout, maxPerParticle
+        simulation.run(sim_steps_incr)
+        for writer in simulation.operations.writers:
+            if hasattr(writer, "flush"):
+                writer.flush()
+        
+    while harmonic.energy/frame.bonds.N > maxPerBond:
+        check_time = time.perf_counter()
+        if (check_time-start_time) > loop_timeout:
+            print("Simulation timed out in bond energy")
+            return simulation.state.get_snapshot(), get_close(rdf), loop_timeout, maxPerParticle
+        simulation.run(sim_steps_incr)
+        for writer in simulation.operations.writers:
+            if hasattr(writer, "flush"):
+                writer.flush()
+
+    closest = get_close(rdf)
+    while closest < min_pair_dist:
+        check_time = time.perf_counter()
+        if (check_time-start_time) > loop_timeout:
+            print("Simulation timed out in rdf polish")
+            return simulation.state.get_snapshot(), get_close(rdf), loop_timeout, maxPerParticle
+        simulation.run(sim_steps_incr)
+        closest = get_close(rdf)
+        for writer in simulation.operations.writers:
+            if hasattr(writer, "flush"):
+                writer.flush()
+
+    simulation.operations.integrator = fire
+    while not (fire.converged):
+        check_time = time.perf_counter()
+        if (check_time-start_time) > loop_timeout:
+            print("Simulation timed out in FIRE")
+            return simulation.state.get_snapshot(), get_close(rdf), loop_timeout, maxPerParticle
+        simulation.run(sim_steps_incr)
+        closest = get_close(rdf)
+        for writer in simulation.operations.writers:
+            if hasattr(writer, "flush"):
+                writer.flush()
+  
+
+    
+    end_time = time.perf_counter()
+    total_time = end_time - start_time
+    np.savetxt( "rdf.csv", np.vstack((rdf.bin_centers, rdf.rdf)).T, delimiter=",", header="r, g(r)")
+    return simulation.state.get_snapshot(), closest, total_time, maxPerParticle
