@@ -1,9 +1,10 @@
 import numpy as np  
 import hoomd 
 import time
+import os
 
 #from dpd_utils import initialize_snapshot_rand_walk,add_hoomd_writers
-from phantomwalk.lib.dpd_utils import initialize_snapshot_rand_walk,add_hoomd_writers
+from phantomwalk.lib.gpu.dpd_utils import initialize_snapshot_rand_walk,add_hoomd_writers,compute_rdf
 
 
 def get_close(rdf):
@@ -14,7 +15,7 @@ def get_close(rdf):
     '''
     b =(rdf.rdf !=0).argmax()
     return rdf.bin_centers[b]
-        
+
 def create_polymer_system_dpd(
     num_pol,
     num_mon,
@@ -34,7 +35,7 @@ def create_polymer_system_dpd(
     energy_scaling= 1,
     bond_tolerance = 0.05,
     write=True,
-    gsd_file_name='trajectory.gsd',
+    gsd_file_name=None,
     gsd_write_freq=10,
     log_file_name='log.txt',
     log_write_freq=10
@@ -280,7 +281,7 @@ def fastfire(
     sim_steps_incr=100,
     loop_timeout=60,
     write=True,
-    gsd_file_name='trajectory.gsd',
+    gsd_file_name=None,
     gsd_write_freq=10,
     log_file_name='log.txt',
     log_write_freq=10
@@ -309,21 +310,23 @@ def fastfire(
     DPD = hoomd.md.pair.DPD(nlist, default_r_cut=r_cut, kT=kT)
     DPD.params[('A', 'A')] = dict(A=A, gamma=gamma)
     integrator.forces.append(DPD)
-
+    
     fire = hoomd.md.minimize.FIRE(dt=dt,force_tol=1e-1, angmom_tol=1000, energy_tol=1e-1)
     fire.methods.append(const_vol)
     fire.forces.append(DPD)
     fire.forces.append(harmonic)
     if write:
-        rdf,thermo = add_hoomd_writers( simulation, gsd_file_name, gsd_write_freq, log_file_name,log_write_freq )
+        thermo = add_hoomd_writers(sim=simulation, gsd_file_name=gsd_file_name, gsd_write_freq=gsd_write_freq, log_file_name=log_file_name,log_write_freq=log_write_freq )
     simulation.run(500)
     simulation.operations.integrator = fire
     simulation.run(200)
     for writer in simulation.operations.writers:
         if hasattr(writer, "flush"):
             writer.flush()
+    rdf = compute_rdf(simulation, bins=100, r_max=1.0)
     closest = get_close(rdf)
     end_time = time.perf_counter()
+    del simulation
     total_time = end_time - start_time
     np.savetxt( "rdf.csv", np.vstack((rdf.bin_centers, rdf.rdf)).T, delimiter=",", header="r, g(r)")
-    return simulation.state.get_snapshot(), closest, total_time, 0.0
+    return closest, total_time, 0.0
