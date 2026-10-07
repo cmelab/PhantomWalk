@@ -1,58 +1,6 @@
 # PhantomWalk
-Polymer system initialization workflow that utilizes a random walk and dissipative particle dynamics as a soft push potential.
+This repository has supporting data and examples for the PhantomWalk workflow that is implemented in flowerMD. PhantomWalk is a polymer system initialization workflow that utilizes a random walk and dissipative particle dynamics as a soft push potential.
 
 ## Environment
 
-Build a software environment using the `environment.yml` file and the command ```conda env create -f environment.yml```
-
-## Examples
-1 - Run a dpd simulation and check the bond lengths and inter-particle distances.
-2 - Run a dpd simulation with an energy stabilization cutoff. Write out simulation to trajectory file.
-3 - Run a dpd simulation with option for angles and dihedrals. Write out to trajectory file. Start a Lennard-Jones WCA simulation with optional angles and dihedrals.
-4 - Replace the random walk in the DPD workflow with mbuild self-avoiding random walk.
-5 - Run DPD on a rigid body model used for anisotropic coarse-graining. Based on flowerMD classes.
-
-## Installation
-
-First, clone the PhantomWalk repository:
-
-``` sh
-git clone git@github.com:cmelab/PhantomWalk
-cd PhantomWalk
-```
-
-Set up & activate the conda environment shipped with PhantomWalk:
-
-``` sh
-conda env create -f ./environment.yml
-conda activate phantomwalk
-```
-
-Install PhantomWalk into the environment with `pip`:
-
-``` sh
-python -m pip install -e .
-```
-
-### Development Environment
-
-If PhantomWalk is being installed for development purposes, the dev environment
-should be used instead, which provides packages necessary for [testing](#tests).
-
-``` sh
-conda env create -f ./environment-dev.yml
-conda activate
-```
-
-## Tests
-
-Before running tests, ensure you have activated the [PhantomWalk dev environment](#development-environment).
-
-PhantomWalk tests can be run by invoking `pytest` in the PhantomWalk repo:
-
-``` sh
-pytest
-```
-
-See the [pytest documentation](https://docs.pytest.org/en/latest/contents.html)
-for more details on how `pytest` works and how to use it.
+Build a software environment using the `environment-dev.yml' file and instructions in flowerMD[https://github.com/cmelab/flowerMD].
