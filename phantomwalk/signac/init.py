@@ -21,15 +21,15 @@ from itertools import product
 def get_parameters():
     ''''''
     parameters = OrderedDict()
-    parameters["num_mols"] = [100,500,1000,2500,5000,10000,25000,50000,100000]
+    parameters["num_mols"] = [100,200,300]
     parameters["lengths"] = [500]
-    parameters["density"] = [0.85]
-    parameters["bond_k"]=[15000,20000,25000]
+    parameters["density"] = [(0.85,1.0,1.1,1.125,1.15,1.175,1.2,1.3,1.4)]
+    parameters["bond_k"]=[100000,250000,500000]
     parameters["bond_r0"]=[1.0]
     parameters["r_cut"]=[1.01]
-    parameters["A"]=[1000,5000]
-    parameters["gamma"]=[800,1000,2000]
-    parameters["seed"]=[15,35,60,125,240]
+    parameters["A"]=[100000,250000,500000]
+    parameters["gamma"]=[1500,2500]
+    parameters["seed"]=[(15,35,60)]
 
 
     return list(parameters.keys()), list(product(*parameters.values()))
@@ -45,6 +45,8 @@ def main():
         job.init()
         job.doc.setdefault("sampled", False)
         job.doc.setdefault("runs", 0)
+        job.doc.setdefault("score",[])
+        job.doc.setdefault("ref_values_dict", {})
 
 
 if __name__ == "__main__":

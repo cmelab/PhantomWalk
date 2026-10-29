@@ -53,6 +53,7 @@ def run(job):
     import unyt as u
     import time
     import hoomd
+    import numpy as np
     
     from flowermd.library.forcefields import DPD
     from flowermd.library import PhantomWalk
@@ -62,55 +63,77 @@ def run(job):
         print("JOB ID NUMBER:")
         print(job.id)
         print("------------------------------------")
-
-        start_time = time.perf_counter()
-        molecules = LJChain(
-            num_mols=job.sp.num_mols,
-            lengths=job.sp.lengths,
-            bead_sequence=["_A"],
-            bead_mass={"_A": 1.0},
-            bond_lengths={"_A-_A": 1.0},
-            identify_connections=False,
-        )
-        mbuild_time = time.perf_counter()
-        job.doc.mbuild_time = mbuild_time - start_time
+        
         ref_length = 1.0 * u.Unit("nm")
         ref_mass = 1.0 * u.Unit("g/mol")
         ref_energy = 1.0 * u.Unit("kcal / mol")
         ref_values_dict = {"length": ref_length, "mass": ref_mass, "energy": ref_energy}
+
+        job.doc.ref_values = ref_values_dict
         
-        system = RandomWalk(
-            molecules=molecules,
-            density=job.sp.density * u.Unit("nm**-3"),
-            bond_length=job.sp.bond_r0,
-            buffer=0.5,
-            base_units=ref_values_dict,
-            seed=job.sp.seed,
-        )
-    
-        dpd_ff = DPD(
-            A=job.sp.A,
-            gamma=job.sp.gamma,
-            kT=1.0,
-            r_cut=job.sp.r_cut,
-            bond_k=job.sp.bond_k,
-            bond_r0=job.sp.bond_r0
-        )
+        for d in job.sp.density:
+            times = []
+            closest = []
+            all_succeeded = True
+            for s in job.sp.seed:
+                start_time = time.perf_counter()
+                molecules = LJChain(
+                    num_mols=job.sp.num_mols,
+                    lengths=job.sp.lengths,
+                    bead_sequence=["_A"],
+                    bead_mass={"_A": 1.0},
+                    bond_lengths={"_A-_A": 1.0},
+                    identify_connections=False,
+                )
+                mbuild_time = time.perf_counter()
+                print("mbuild time:", mbuild_time - start_time)
+                
+                system = RandomWalk(
+                    molecules=molecules,
+                    density=d * u.Unit("nm**-3"),
+                    bond_length=1.0,
+                    base_units=ref_values_dict,
+                    seed=s,
+                )
+                
+                nlist = hoomd.md.nlist.Cell(buffer=0.2, exclusions=["bond"])
+                gmso_start = time.perf_counter()
+                system.apply_forcefield(
+                    force_field=Bead_Spring_DPD(),
+                    r_cut=job.sp.r_cut,
+                    kT=job.sp.kT,
+                    speedup_by_molgraph=True,
+                    speedup_by_moltag=False,
+                    nlist=nlist
+                )
+                gmso_end = time.perf_counter()
+                print("gmso ff time:", gmso_end - gmso_start)
         
-        sim = PhantomWalk(
-            initial_state=system.hoomd_snapshot,
-            forcefield=dpd_ff.hoomd_forces,
-            gsd_write_freq=1000,
-            log_write_freq=50,
-            n_steps_dpd=500,
-            n_steps_fire=100,
-            seed=job.sp.seed,
-        )
-        end_time = time.perf_counter()
-        for writer in sim.operations.writers:
-            writer.flush()
-        job.doc.time = end_time - start_time
-        job.doc.particle_separation = sim.particle_separation
+                try:
+                    sim = PhantomWalk(
+                        initial_state=system.hoomd_snapshot,
+                        forcefield=system.hoomd_forcefield,
+                        gsd_write_freq=job.sp.gsd_write_freq,
+                        log_write_freq=job.sp.log_write_freq,
+                        n_steps_dpd=job.sp.dpd_steps,
+                        n_steps_fire=job.sp.fire_steps,
+                        write_at_start=job.sp.write_start,
+                        seed=s,
+                    )
+                    end_time = time.perf_counter()
+                    print("Total time:", end_time - start_time)
+                    times.append(end_time-start_time)
+                    closest.append(sim.particle_separation)
+                except RuntimeError:
+                    all_succeeded=False
+                    print("This data set failed.")
+        
+            if all_succeeded and times:
+                score = [d, np.mean(times), np.std(times),
+                         np.mean(closest), np.std(closest), True]
+            else:
+                score = [d, np.nan, np.nan, np.nan, np.nan, False]
+            job.doc.score.append(score)
        
 if __name__ == "__main__":
-    DPD(environment=Fry).main()
+    DPD().main()
