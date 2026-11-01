@@ -1,4 +1,3 @@
-```python
 """Workflow for the XML-forcefield (Bead_Spring_DPD) signac project."""
 from flow import FlowProject
 from flow.environment import DefaultSlurmEnvironment
@@ -44,7 +43,6 @@ NLIST_BUFFER = 0.2
 # needed as the RandomWalk bond_length; use the same fixed value recorded
 # in job.doc.requested_dpd_params (see init.py).
 FIXED_BOND_R0 = 1.0
-
 
 @ProjectXML.post(lambda job: job.doc.sampled)
 @ProjectXML.operation(
@@ -142,10 +140,11 @@ def run(job):
                 score = [d, np.nan, np.nan, np.nan, np.nan, False]
             job.doc.score.append(score)
 
+        job.doc.bond_params = system.gmso_system.bond_types
+        job.doc.dpd_params = system.gmso_system.pairpotential_types
         job.doc.runs += 1
         job.doc.sampled = True
 
 
 if __name__ == "__main__":
     ProjectXML().main()
-```
