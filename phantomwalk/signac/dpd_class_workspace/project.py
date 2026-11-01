@@ -75,8 +75,8 @@ def run(job):
 
         ref_values_dict = {
             "length": 1.0 * u.Unit("nm"),
-            "mass": 1.0 * u.Unit("g/mol"),
-            "energy": 1.0 * u.Unit("kcal / mol"),
+            "mass": 1.0 * u.Unit("amu"),
+            "energy": 1.0 * u.Unit("kJ / mol"),
         }
         job.doc.ref_values = ref_values_dict
         job.doc.forcefield_type = "DPD_class"

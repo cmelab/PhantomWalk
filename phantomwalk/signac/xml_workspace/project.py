@@ -66,8 +66,8 @@ def run(job):
 
         ref_values_dict = {
             "length": 1.0 * u.Unit("nm"),
-            "mass": 1.0 * u.Unit("g/mol"),
-            "energy": 1.0 * u.Unit("kcal / mol"),
+            "mass": 1.0 * u.Unit("amu"),
+            "energy": 1.0 * u.Unit("kJ / mol"),
         }
         job.doc.ref_values = ref_values_dict
         job.doc.forcefield_type = "Bead_Spring_DPD_xml"
@@ -140,8 +140,7 @@ def run(job):
                 score = [d, np.nan, np.nan, np.nan, np.nan, False]
             job.doc.score.append(score)
 
-        job.doc.bond_params = system.gmso_system.bond_types
-        job.doc.dpd_params = system.gmso_system.pairpotential_types
+        print(system.gmso_system.pairpotential_types,system.gmso_system.bond_types)
         job.doc.runs += 1
         job.doc.sampled = True
 

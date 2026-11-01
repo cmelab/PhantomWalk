@@ -16,7 +16,7 @@ from itertools import product
 
 def get_parameters():
     parameters = OrderedDict()
-    parameters["num_mols"] = [100]
+    parameters["num_mols"] = [10,100]
     parameters["lengths"] = [5]
     parameters["density"] = [(0.85, 1.125, 1.15, 1.175, 1.2, 1.3, 1.4)]
     parameters["r_cut"] = [1.01]
@@ -39,6 +39,8 @@ def main():
         job.doc.setdefault("score", [])
         job.doc.setdefault("ref_values", {})
         job.doc.setdefault("forcefield_type", "Bead_Spring_DPD_xml")
+        job.doc.setdefault("dpd_params",{})
+        job.doc.setdefault("bond_params",{})
 
 
 if __name__ == "__main__":

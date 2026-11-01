@@ -13,7 +13,7 @@ from itertools import product
 
 def get_parameters():
     parameters = OrderedDict()
-    parameters["num_mols"] = [10]
+    parameters["num_mols"] = [10,100]
     parameters["lengths"] = [5]
     parameters["density"] = [(0.85, 1.0, 1.1, 1.125, 1.15, 1.175, 1.2, 1.3, 1.4)]
     parameters["bond_k"] = [250000]
